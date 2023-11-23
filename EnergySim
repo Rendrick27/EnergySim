@@ -1,0 +1,52 @@
+#!/bin/bash
+
+# GROMACS Simulation Script
+# This script automates the setup and execution of a GROMACS simulation.
+
+# Update the package list to ensure the latest versions are available
+sudo apt update
+
+# Check if GROMACS is already installed
+if command -v gmx &> /dev/null
+then
+    echo "GROMACS is already installed."
+else
+    # Install GROMACS if not already installed
+    echo "GROMACS is not installed. Installing now..."
+    sudo apt install gromacs
+fi
+
+# Step 1: Conversion of formats, topology generation
+# Convert PDB to Gromacs format, generate topology
+gmx pdb2gmx -f 6GS3_1.pdb -p topol.top -o box.gro -ff oplsaa -water tip4p
+
+# Step 2: Solvation
+# Create a box and solvate the system
+gmx editconf -f box.gro -o newbox.gro -c -d 2.0 -bt cubic
+gmx solvate -cp newbox.gro -cs tip4p.gro -o solv.gro -p topol.top
+
+# Step 3: Neutralize charges if necessary, add ions (commented out)
+gmx grompp -f ions.mdp -c solv.gro -p topol.top -o ions.tpr -maxwarn 1
+echo "13" | gmx genion -s ions.tpr -o solv_ions.gro -p topol.top -pname NA -nname CL -neutral
+
+# Step 4: Minimize total system energy
+# Perform energy minimization
+gmx grompp -f minim.mdp -c solv_ions.gro -p topol.top -o em.tpr -maxwarn 1
+gmx mdrun -v -deffnm em
+
+# Step 5: Temperature equilibration
+# Perform NVT equilibration
+gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr -maxwarn 1
+gmx mdrun -v -deffnm nvt
+
+# Step 6: Pressure equilibration NPT
+# Perform NPT equilibration
+gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -p topol.top -o npt.tpr -maxwarn 1
+gmx mdrun -v -deffnm npt
+
+# Step 7: Simulation md
+# Perform molecular dynamics simulation
+gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md.tpr -maxwarn 1
+gmx mdrun -v -deffnm md
+
+
