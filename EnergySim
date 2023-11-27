@@ -3,12 +3,31 @@
 # GROMACS Simulation Script
 # This script automates the setup and execution of a GROMACS simulation.
 
+set -e  # Exit on error
+
+# Function to check and install Grace if not installed
+install_grace() {
+    if command -v grace &> /dev/null; then
+        echo "Grace is already installed."
+    else
+        echo "Grace is not installed. Installing now..."
+        sudo apt install grace
+    fi
+}
+
+# Function to check command success
+check_command() {
+    if [ $? -ne 0 ]; then
+        echo "Error: Command failed. Exiting."
+        exit 1
+    fi
+}
+
 # Update the package list to ensure the latest versions are available
 sudo apt update
 
 # Check if GROMACS is already installed
-if command -v gmx &> /dev/null
-then
+if command -v gmx &> /dev/null; then
     echo "GROMACS is already installed."
 else
     # Install GROMACS if not already installed
@@ -16,37 +35,133 @@ else
     sudo apt install gromacs
 fi
 
+# Install Grace if not installed
+install_grace
+
 # Step 1: Conversion of formats, topology generation
 # Convert PDB to Gromacs format, generate topology
 gmx pdb2gmx -f 6GS3_1.pdb -p topol.top -o box.gro -ff oplsaa -water tip4p
+check_command
 
 # Step 2: Solvation
 # Create a box and solvate the system
 gmx editconf -f box.gro -o newbox.gro -c -d 2.0 -bt cubic
 gmx solvate -cp newbox.gro -cs tip4p.gro -o solv.gro -p topol.top
+check_command
 
 # Step 3: Neutralize charges if necessary, add ions (commented out)
 gmx grompp -f ions.mdp -c solv.gro -p topol.top -o ions.tpr -maxwarn 1
 echo "13" | gmx genion -s ions.tpr -o solv_ions.gro -p topol.top -pname NA -nname CL -neutral
+check_command
 
 # Step 4: Minimize total system energy
 # Perform energy minimization
 gmx grompp -f minim.mdp -c solv_ions.gro -p topol.top -o em.tpr -maxwarn 1
 gmx mdrun -v -deffnm em
+check_command
 
 # Step 5: Temperature equilibration
 # Perform NVT equilibration
 gmx grompp -f nvt.mdp -c em.gro -r em.gro -p topol.top -o nvt.tpr -maxwarn 1
 gmx mdrun -v -deffnm nvt
+check_command
 
 # Step 6: Pressure equilibration NPT
 # Perform NPT equilibration
 gmx grompp -f npt.mdp -c nvt.gro -r nvt.gro -p topol.top -o npt.tpr -maxwarn 1
 gmx mdrun -v -deffnm npt
+check_command
 
 # Step 7: Simulation md
 # Perform molecular dynamics simulation
 gmx grompp -f md.mdp -c npt.gro -t npt.cpt -p topol.top -o md.tpr -maxwarn 1
 gmx mdrun -v -deffnm md
+check_command
 
+# Question 1
+gmx energy -f em.edr -o minim_pot.xvg
+grace -hdevice PNG -hardcopy -nxy minim_pot.xvg -printfile minim_pot.png
+check_command
+
+# Question 2
+gmx energy -f nvt.edr -o temperature.xvg
+grace -hdevice PNG -hardcopy -nxy temperature.xvg -printfile temperature.png
+check_command
+
+gmx energy -f nvt.edr -o total_energy.xvg
+grace -hdevice PNG -hardcopy -nxy total_energy.xvg -printfile total_energy.png
+check_command
+
+gmx energy -f nvt.edr -o potential_energy.xvg
+grace -hdevice PNG -hardcopy -nxy potential_energy.xvg -printfile potential_energy.png
+check_command
+
+gmx energy -f nvt.edr -o kinetic_energy.xvg
+grace -hdevice PNG -hardcopy -nxy kinetic_energy.xvg -printfile kinetic_energy.png
+check_command
+
+# Question 3
+gmx energy -f npt.edr -o temperature_npt.xvg
+grace -hdevice PNG -hardcopy -nxy temperature_npt.xvg -printfile temperature_npt.png
+check_command
+
+gmx energy -f npt.edr -o pressure.xvg
+grace -hdevice PNG -hardcopy -nxy pressure.xvg -printfile pressure.png
+check_command
+
+gmx energy -f npt.edr -o total_energy_npt.xvg
+grace -hdevice PNG -hardcopy -nxy total_energy_npt.xvg -printfile total_energy_npt.png
+check_command
+
+gmx energy -f npt.edr -o potential_energy_npt.xvg
+grace -hdevice PNG -hardcopy -nxy potential_energy_npt.xvg -printfile potential_energy_npt.png
+check_command
+
+gmx energy -f npt.edr -o kinetic_energy_npt.xvg
+grace -hdevice PNG -hardcopy -nxy kinetic_energy_npt.xvg -printfile kinetic_energy_npt.png
+check_command
+
+# Question 4
+gmx energy -f md.edr -o temperature_md.xvg
+grace -hdevice PNG -hardcopy -nxy temperature_md.xvg -printfile temperature_md.png
+check_command
+
+gmx energy -f md.edr -o pressure_md.xvg
+grace -hdevice PNG -hardcopy -nxy pressure_md.xvg -printfile pressure_md.png
+check_command
+
+gmx energy -f md.edr -o total_energy_md.xvg
+grace -hdevice PNG -hardcopy -nxy total_energy_md.xvg -printfile total_energy_md.png
+check_command
+
+gmx energy -f md.edr -o potential_energy_md.xvg
+grace -hdevice PNG -hardcopy -nxy potential_energy_md.xvg -printfile potential_energy_md.png
+check_command
+
+gmx energy -f md.edr -o kinetic_energy_md.xvg
+grace -hdevice PNG -hardcopy -nxy kinetic_energy_md.xvg -printfile kinetic_energy_md.png
+check_command
+
+# Question 5
+gmx energy -f md.edr -o density.xvg
+grace -hdevice PNG -hardcopy -nxy density.xvg -printfile density.png
+check_command
+
+# Question 6
+gmx gyrate -f md.xtc -s md.tpr -o md_gyrate.xvg
+grace -hdevice PNG -hardcopy -nxy md_gyrate.xvg -printfile md_gyrate.png
+check_command
+
+# Question 7
+gmx rms -s md.tpr -f md.xtc -o rmsd.xvg -tu ns
+grace -hdevice PNG -hardcopy -nxy rmsd.xvg -printfile rmsd.png
+check_command
+
+# Question 8
+gmx hbond -f md.xtc -s md.tpr -num -dist -hx -hbn
+grace -hdevice PNG -hardcopy -nxy hbnum.xvg -printfile hbnum.png
+grace -hdevice PNG -hardcopy -nxy hbhelix.xvg -printfile hbhelix.png
+check_command
+
+echo "Script completed successfully."
 
