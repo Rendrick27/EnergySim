@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Function to check and install Grace if not installed
+install_grace() {
+    if command -v grace &> /dev/null
+    then
+        echo "Grace is already installed."
+    else
+        echo "Grace is not installed. Installing now..."
+        sudo apt install grace
+    fi
+}
+
+# Question 1
+gmx energy -f em.edr -o minim_pot.xvg
+grace -hdevice PNG -hardcopy -nxy minim_pot.xvg -printfile minim_pot.png
+
+# Question 2
+gmx energy -f nvt.edr -o temperature.xvg
+grace -hdevice PNG -hardcopy -nxy temperature.xvg -printfile temperature.png
+
+gmx energy -f nvt.edr -o total_energy.xvg
+grace -hdevice PNG -hardcopy -nxy total_energy.xvg -printfile total_energy.png
+
+gmx energy -f nvt.edr -o potential_energy.xvg
+grace -hdevice PNG -hardcopy -nxy potential_energy.xvg -printfile potential_energy.png
+
+gmx energy -f nvt.edr -o kinetic_energy.xvg
+grace -hdevice PNG -hardcopy -nxy kinetic_energy.xvg -printfile kinetic_energy.png
+
+# Question 3
+gmx energy -f npt.edr -o temperature_npt.xvg
+grace -hdevice PNG -hardcopy -nxy temperature_npt.xvg -printfile temperature_npt.png
+
+gmx energy -f npt.edr -o pressure.xvg
+grace -hdevice PNG -hardcopy -nxy pressure.xvg -printfile pressure.png
+
+gmx energy -f npt.edr -o total_energy_npt.xvg
+grace -hdevice PNG -hardcopy -nxy total_energy_npt.xvg -printfile total_energy_npt.png
+
+gmx energy -f npt.edr -o potential_energy_npt.xvg
+grace -hdevice PNG -hardcopy -nxy potential_energy_npt.xvg -printfile potential_energy_npt.png
+
+gmx energy -f npt.edr -o kinetic_energy_npt.xvg
+grace -hdevice PNG -hardcopy -nxy kinetic_energy_npt.xvg -printfile kinetic_energy_npt.png
+
+# Question 4
+gmx energy -f md.edr -o temperature_md.xvg
+grace -hdevice PNG -hardcopy -nxy temperature_md.xvg -printfile temperature_md.png
+
+gmx energy -f md.edr -o pressure_md.xvg
+grace -hdevice PNG -hardcopy -nxy pressure_md.xvg -printfile pressure_md.png
+
+gmx energy -f md.edr -o total_energy_md.xvg
+grace -hdevice PNG -hardcopy -nxy total_energy_md.xvg -printfile total_energy_md.png
+
+gmx energy -f md.edr -o potential_energy_md.xvg
+grace -hdevice PNG -hardcopy -nxy potential_energy_md.xvg -printfile potential_energy_md.png
+
+gmx energy -f md.edr -o kinetic_energy_md.xvg
+grace -hdevice PNG -hardcopy -nxy kinetic_energy_md.xvg -printfile kinetic_energy_md.png
+
+# Question 5
+gmx energy -f md.edr -o density.xvg
+grace -hdevice PNG -hardcopy -nxy density.xvg -printfile density.png
+
+# Question 6
+gmx gyrate -f md.xtc -s md.tpr -o md_gyrate.xvg
+grace -hdevice PNG -hardcopy -nxy md_gyrate.xvg -printfile md_gyrate.png
+
+# Question 7
+gmx rms -s md_0_1.tpr -f md_0_1_noPBC.xtc -o rmsd.xvg -tu ns
+grace -hdevice PNG -hardcopy -nxy rmsd.xvg -printfile rmsd.png
